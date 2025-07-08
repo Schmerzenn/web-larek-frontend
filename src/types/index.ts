@@ -1,4 +1,4 @@
-/** Описывает товар на витрине */
+// Описывает товар на витрине 
 export interface IProductItem {
   id: string;
   description: string;
@@ -8,12 +8,12 @@ export interface IProductItem {
   price: number | null;
 }
 
-/** Обработчик клика мыши по элементу */
+// Обработчик клика мыши по элементу 
 export interface IActions {
   onClick: (event: MouseEvent) => void;
 }
 
-/** Интерфейс данных формы оформления заказа */
+// Интерфейс данных формы оформления заказа 
 export interface IOrderForm {
   payment?: string;
   address?: string;
@@ -22,12 +22,12 @@ export interface IOrderForm {
   total?: string | number;
 }
 
-/** Расширяет IOrderForm, добавляя список товаров в заказе */
+// Расширяет IOrderForm, добавляя список товаров в заказе 
 export interface IOrder extends IOrderForm {
   items: string[];
 }
 
-/** Полная структура заказа для отправки на сервер */
+// Полная структура заказа для отправки на сервер 
 export interface IOrderLot {
   payment: string;
   email: string;
@@ -37,7 +37,7 @@ export interface IOrderLot {
   items: string[];
 }
 
-/** Результат успешного создания заказа */
+// Результат успешного создания заказа 
 export interface IOrderResult {
   id: string;
   total: number;

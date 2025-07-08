@@ -63,165 +63,241 @@ yarn build
 
 # Документация
 
-### Класс `Api`
+### 1. Типы и интерфейсы
 
-Содержит свойства и методы для взаимодействия с сервером:
+```ts
+// Тип товара
+export interface IProductItem {
+	id: string;
+	title: string;
+	category: string;
+	description: string;
+	price: number;
+	image: string;
+}
 
-- **Метод** `handleResponse(response: Response): Promise<object>`  
-  Обрабатывает ответ от сервера и возвращает распарсенный объект.
+// Данные нового заказа
+export interface IOrderLot {
+	items: string[]; // массив идентификаторов товаров
+	email: string;
+	phone: string;
+	address: string;
+	payment: string; // выбранный способ оплаты
+	total: number; // итоговая сумма
+}
 
-- **Метод** `get(uri: string)`  
-  Принимает изменяемую часть URL и возвращает промис с ответом сервера.
-
-- **Метод** `post(uri: string, data: object, method: ApiPostMethods = 'POST')`  
-  Отправляет на сервер объект `data` по указанному URI, используя один из HTTP‑методов: `'POST' | 'PUT' | 'DELETE'`.
-
----
-
-### Класс `EventEmitter` implements `IEvents`
-
-Реализует паттерн «Наблюдатель» для управления событиями. Позволяет подписываться на них, отписываться и генерировать:
-
-- **`on(event: string, listener: Function)`**  
-  Подписка на конкретное событие.
-
-- **`off(event: string, listener: Function)`**  
-  Отмена подписки на событие.
-
-- **`emit(event: string, ...args: any[])`**  
-  Оповещение подписчиков о наступлении события.
-
-- **`onAll(listener: Function)`**  
-  Подписка на все виды событий.
-
-- **`offAll()`**  
-  Сброс всех подписчиков.
-
-- **`trigger(event: string, ...args: any[])`**  
-  Генерация заданного события с аргументами, что позволяет передавать метод в качестве обработчика другим классам без прямой зависимости.
+// Ответ сервера при оформлении заказа
+export interface IOrderResult {
+	success: boolean;
+	orderId: string;
+}
+```
 
 ---
 
-## Классы моделей (`Model`)
+### 2. Модели данных
 
-Отвечают за хранение и обработку данных из сервера и от пользователя.
+#### 2.1. ApiModel
 
-#### `ApiModel` extends `Api`
+Работа с сервером (в `base/api.ts` — HTTP‑клиент).
 
-Обменивается данными с сервером:
+- **Методы**
 
-- **`getListProductCard(): Promise<ProductCard[]>`**  
-  Запрашивает массив карточек товаров.
+  - `getListProductCard(): Promise<IProductItem[]>`
+    Выполняет `GET /product`, получает массив `IProductItem`,
+  - `postOrderLot(order: IOrderLot): Promise<IOrderResult>`
+    Отправляет `POST /order` с телом `order`.
 
-- **`postOrderLot(): Promise<object>`**  
-  Отправляет на сервер заказ и получает подтверждение.
+#### 2.2. DataModel
 
-#### `BasketModel`
+Хранит каталог и выбранный товар.
 
-Управляет данными корзины, введёнными пользователем:
+- **Свойства**
 
-- **`getCounter(): number`**  
-  Возвращает количество товаров в корзине.
+  - `productCards: IProductItem[]`
 
-- **`getSumAllProducts(): number`**  
-  Суммирует стоимость всех товаров в корзине.
+- **Методы**
 
-- **`setSelectedСard(card: ProductCard)`**  
-  Добавляет товар в корзину.
+  - `setPreview(item: IProductItem): void`
+    Устанавливает `selectedCard`
 
-- **`deleteCardToBasket(cardId: string)`**  
-  Удаляет указанный товар из корзины.
+- **События**
 
-- **`clearBasketProducts()`**  
-  Очищает корзину полностью.
+  | Событие                | Когда эмитится                                   |
+  | ---------------------- | ------------------------------------------------ | --- |
+  | `productCards:receive` | После присваивания нового массива `productCards` |     |
 
-#### `DataModel`
+#### 2.3. BasketModel
 
-Хранит данные о продуктах, полученные с сервера:
+Управляет списком товаров в корзине.
 
-- **`setPreview(card: ProductCard)`**  
-  Сохраняет информацию о товаре для просмотра.
+- **Свойства**
 
-#### `FormModel`
+  - `basketProducts: IProductItem[]`
 
-Собирает и проверяет данные, введённые пользователем:
+- **Методы**
 
-- **`setOrderAddress(address: string)`**  
-  Сохраняет адрес доставки.
+  - `setSelectedСard(data: IProductItem): void`
+  - `deleteCardToBasket(item: IProductItem): void`
+  - `clearBasketProducts(): void`
+  - `getCounter(): number` — число элементов
+  - `getSumAllProducts(): number` — суммарная стоимость
 
-- **`validateOrder(): boolean`**  
-  Проверяет корректность адреса и способа оплаты.
+- **События**
+  Модель корзины сама не эмитит события;
 
-- **`setOrderData(contact: { phone?: string; email?: string })`**  
-  Сохраняет телефон и/или email пользователя.
+#### 2.4. FormModel
 
-- **`validateContacts(): boolean`**  
-  Проверяет формат телефона и почты.
+Хранит данные текущего заказа перед отправкой.
 
-- **`getOrderLot(): OrderData`**  
-  Возвращает объект с данными пользователя и выбранными товарами.
+- **Свойства**
+
+  - `email: string`
+  - `phone: string`
+  - `address: string`
+  - `payment: string`
+  - `items: string[]`
+  - `total: number`
+
+- **Методы**
+
+  - `setOrderData(field: string, value: string): void;`
+  - `setOrderAddress(field: "address", value: string): void`
+  - `validateContacts(): boolean`
+  - `validateOrder(): boolean`
+  - `getOrderLot(): object`
+
+- **События**
+
+  | Событие             | Когда эмитится                                      |
+  | ------------------- | --------------------------------------------------- |
+  | `formErrors:change` | При изменении ошибок валидации (отображение ошибок) |
 
 ---
 
-## Классы представления (`View`)
+### 3. EventEmitter
 
-Отображают элементы страницы и обрабатывают взаимодействие с пользователем.
+Общий механизм коммуникации.
 
-#### `Basket`
+- Методы:
 
-Управляет визуализацией корзины:
+  - `on(event: string, handler: Function): void`
+  - `emit(event: string, payload?: any): void`
+  - `trigger(event: string, payload?: any): void`
 
-- **`renderHeaderBasketCounter(count: number)`**  
-  Обновляет счётчик количества товаров в шапке.
+Используется всеми моделями и компонентами для подписки и оповещения.
 
-- **`renderSumAllProducts(sum: number)`**  
-  Отображает общую стоимость товаров.
+---
 
-#### `BasketItem`
+### 4. Компоненты представления
 
-Отвечает за отображение отдельного товара в корзине:
+#### 4.1. Modal (`View/Modal.ts`)
 
-- **`setPrice(price: number): string`**  
-  Преобразует число в строку для вывода цены.
+Базовый класс для модальных окон.
 
-#### `Card`
+```ts
+constructor(modalContainer: HTMLElement, protected events: IEvents)
+set content(node: HTMLElement)
+open(): void   // добавляет CSS-класс, emit "modal:open"
+close(): void  // убирает класс, emit "modal:close"
+```
 
-Рендерит карточку товара на странице:
+#### 4.2. Card (`View/Card.ts`)
 
-- **`setText(element: HTMLElement, text: string)`**  
-  Устанавливает текстовое содержимое элемента.
+Карточка товара.
 
-- **`cardCategory(category: string)`**  
-  Добавляет соответствующий `className` к элементу.
+```ts
+constructor(
+  template: HTMLTemplateElement,
+  events: EventEmitter,
+  actions: {
+    onClick?: () => void;   // обработка клика по карточке
+    onAdd?: () => void;     // обработка клика «Добавить в корзину»
+  }
+)
+render(data: IProductItem): HTMLElement
+```
 
-- **`setPrice(price: number): string`**  
-  Форматирует числовое значение цены в строку.
+#### 4.3. CardPreview (`View/CardPreview.ts`)
 
-#### `CardPreview` extends `Card`
+Подробная карточка (расширяет Card).
 
-Отвечает за подробный просмотр товара и добавление в корзину:
+- При клике на кнопку «Добавить в корзину» эмитит `card:addBasket`.
+- `render(data: IProductItem)`: показывает описание и кнопку.
 
-- **`notSale(product: ProductCard)`**  
-  Проверяет наличие цены и, если она отсутствует, блокирует возможность покупки.
+#### 4.4. Basket (`View/Basket.ts`)
 
-#### `Order`
+Отображает список товаров и контролы корзины.
 
-Управляет модальным окном выбора оплаты:
+```ts
+constructor(template: HTMLTemplateElement, events: EventEmitter)
+set items(nodes: HTMLElement[])    // массив <BasketItem>.render(...)
+set total(value: number)           // отображает итоговую сумму
+renderHeaderBasketCounter(count: number): void  // обновляет счётчик в иконке
+```
 
-- **`paymentSelection(method: string)`**  
-  Подсвечивает выбранный способ оплаты.
+- При клике на иконку эмитит `basket:open`.
+- При клике на кнопку «Оформить» — `order:open`.
 
-#### `Contacts`
+#### 4.5. BasketItem (`View/BasketItem.ts`)
 
-Отображает модалку для ввода телефона и email.
+Одиночный элемент корзины.
 
-#### `Modal`
+```ts
+constructor(
+  template: HTMLTemplateElement,
+  events: EventEmitter,
+  actions: { onClick?: () => void }  // удаление
+)
+render(data: IProductItem, index: number): HTMLElement
+```
 
-Управляет открытием и закрытием модальных окон:
+#### 4.6. Contacts (`View/FormContacts.ts`)
 
-- **`open()`** — открывает окно.
-- **`close()`** — закрывает окно.
+Форма ввода контактов.
 
-#### `Success`
+- Поля: Email, Телефон
+- События:
 
-Показывает модальное окно с подтверждением успешного оформления заказа.
+  - `contacts:changeInput` при каждом вводе `{ field, value }`
+  - `success:open` при submit (открыть окно успеха)
+
+#### 4.7. Order (`View/FormOrder.ts`)
+
+Форма выбора оплаты и ввода адреса.
+
+- Поля: способ оплаты (`select`), адрес (`input`)
+- События:
+
+  - `order:paymentSelection` при выборе оплаты
+  - `order:changeAddress` при вводе адреса
+  - `contacts:open` при submit (переход к форме контактов)
+
+#### 4.8. Success (`View/Success.ts`)
+
+Окно успешного оформления.
+
+- Показывает сообщение «Списано X синапсов»
+- Кнопка «За новыми покупками!» эмитит `success:close`
+
+---
+
+### 5. Словарь основных событий
+
+| Событие                  | Отправитель | Описание                                           |
+| ------------------------ | ----------- | -------------------------------------------------- |
+| `productCards:receive`   | DataModel   | Получен новый список товаров                       |
+| `modalCard:open`         | DataModel   | Открыть подробную карточку                         |
+| `card:addBasket`         | CardPreview | Пользователь добавил товар из превью               |
+| `basket:open`            | Basket      | Открыть окно корзины                               |
+| `order:open`             | Basket      | Перейти к форме оформления заказа                  |
+| `order:paymentSelection` | Order       | Выбран способ оплаты                               |
+| `order:changeAddress`    | Order       | Введён адрес доставки                              |
+| `contacts:open`          | Order       | Перейти к форме ввода контактов                    |
+| `contacts:changeInput`   | Contacts    | Изменён ввод поля (email или phone)                |
+| `success:open`           | Contacts    | Открыть окно об успешном оформлении                |
+| `success:close`          | Success     | Закрыть окно успеха и вернуться к каталогу товаров |
+
+---
+
+> Данная документация точно отражает названия классов, методов, полей и событий в текущем исходном коде проекта «Веб‑Ларёк». При обновлении кода не забудьте синхронизировать и документ.
