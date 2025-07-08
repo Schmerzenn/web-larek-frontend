@@ -66,31 +66,52 @@ yarn build
 ### 1. Типы и интерфейсы
 
 ```ts
-// Тип товара
-export interface IProductItem {
+// Описывает товар на витрине
+interface IProductItem {
 	id: string;
+	description: string;
+	image: string;
 	title: string;
 	category: string;
-	description: string;
-	price: number;
-	image: string;
+	price: number | null;
 }
 
-// Данные нового заказа
-export interface IOrderLot {
-	items: string[]; // массив идентификаторов товаров
+// Обработчик клика мыши по элементу
+interface IActions {
+	onClick: (event: MouseEvent) => void;
+}
+
+// Интерфейс данных формы оформления заказа
+interface IOrderForm {
+	payment?: string;
+	address?: string;
+	phone?: string;
+	email?: string;
+	total?: string | number;
+}
+
+// Расширяет IOrderForm, добавляя список товаров в заказе
+interface IOrder extends IOrderForm {
+	items: string[];
+}
+
+// Полная структура заказа для отправки на сервер
+interface IOrderLot {
+	payment: string;
 	email: string;
 	phone: string;
 	address: string;
-	payment: string; // выбранный способ оплаты
-	total: number; // итоговая сумма
+	total: number;
+	items: string[];
 }
 
-// Ответ сервера при оформлении заказа
-export interface IOrderResult {
-	success: boolean;
-	orderId: string;
+// Результат успешного создания заказа
+interface IOrderResult {
+	id: string;
+	total: number;
 }
+
+type FormErrors = Partial<Record<keyof IOrder, string>>;
 ```
 
 ---
@@ -209,10 +230,9 @@ close(): void  // убирает класс, emit "modal:close"
 ```ts
 constructor(
   template: HTMLTemplateElement,
-  events: EventEmitter,
+  protected events: IEvents
   actions: {
     onClick?: () => void;   // обработка клика по карточке
-    onAdd?: () => void;     // обработка клика «Добавить в корзину»
   }
 )
 render(data: IProductItem): HTMLElement
@@ -230,10 +250,9 @@ render(data: IProductItem): HTMLElement
 Отображает список товаров и контролы корзины.
 
 ```ts
-constructor(template: HTMLTemplateElement, events: EventEmitter)
-set items(nodes: HTMLElement[])    // массив <BasketItem>.render(...)
-set total(value: number)           // отображает итоговую сумму
-renderHeaderBasketCounter(count: number): void  // обновляет счётчик в иконке
+constructor(template: HTMLTemplateElement, protected events: IEvents)
+set items(items: HTMLElement[])
+renderHeaderBasketCounter(value: number): void  // обновляет счётчик
 ```
 
 - При клике на иконку эмитит `basket:open`.
@@ -282,22 +301,18 @@ render(data: IProductItem, index: number): HTMLElement
 
 ---
 
-### 5. Словарь основных событий
+### 5. Основные события
 
-| Событие                  | Отправитель | Описание                                           |
-| ------------------------ | ----------- | -------------------------------------------------- |
-| `productCards:receive`   | DataModel   | Получен новый список товаров                       |
-| `modalCard:open`         | DataModel   | Открыть подробную карточку                         |
-| `card:addBasket`         | CardPreview | Пользователь добавил товар из превью               |
-| `basket:open`            | Basket      | Открыть окно корзины                               |
-| `order:open`             | Basket      | Перейти к форме оформления заказа                  |
-| `order:paymentSelection` | Order       | Выбран способ оплаты                               |
-| `order:changeAddress`    | Order       | Введён адрес доставки                              |
-| `contacts:open`          | Order       | Перейти к форме ввода контактов                    |
-| `contacts:changeInput`   | Contacts    | Изменён ввод поля (email или phone)                |
-| `success:open`           | Contacts    | Открыть окно об успешном оформлении                |
-| `success:close`          | Success     | Закрыть окно успеха и вернуться к каталогу товаров |
-
----
-
-> Данная документация точно отражает названия классов, методов, полей и событий в текущем исходном коде проекта «Веб‑Ларёк». При обновлении кода не забудьте синхронизировать и документ.
+| Событие                  | Отправитель | Описание                                    |
+| ------------------------ | ----------- | ------------------------------------------- |
+| `productCards:receive`   | DataModel   | Получен новый список товаров                |
+| `modalCard:open`         | DataModel   | Открыть подробную карточку                  |
+| `card:addBasket`         | CardPreview | Пользователь добавил товар из превью        |
+| `basket:open`            | Basket      | Открыть окно корзины                        |
+| `order:open`             | Basket      | Перейти к форме оформления заказа           |
+| `order:paymentSelection` | Order       | Выбран способ оплаты                        |
+| `order:changeAddress`    | Order       | Введён адрес доставки                       |
+| `contacts:open`          | Order       | Перейти к форме ввода контактов             |
+| `contacts:changeInput`   | Contacts    | Изменён ввод поля (email или phone)         |
+| `success:open`           | Contacts    | Открыть окно об успешном оформлении         |
+| `success:close`          | Success     | Закрыть окно и вернуться к каталогу товаров |
