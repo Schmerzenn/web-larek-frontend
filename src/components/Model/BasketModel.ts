@@ -16,21 +16,45 @@ export class BasketModel implements IBasketModel {
 		this._basketProducts = [];
 	}
 
-	set basketProducts(data: IProductItem[]) {}
+  set basketProducts(data: IProductItem[]) {
+    this._basketProducts = data;
+  }
 
-	get basketProducts() {}
+  get basketProducts() {
+    return this._basketProducts;
+  }
 
 	// количество товара в корзине
-	getCounter() {}
+  getCounter() {
+    return this.basketProducts.length;
+  }
+
 
 	// сумма всех товаров в корзине
-	getSumAllProducts() {}
+  getSumAllProducts() {
+    let sumAll = 0;
+    this.basketProducts.forEach(item => {
+      sumAll = sumAll + item.price;
+    });
+    return sumAll;
+  }
 
 	// добавить карточку товара в корзину
-	setSelectedСard(data: IProductItem) {}
+  setSelectedСard(data: IProductItem) {
+    this._basketProducts.push(data);
+  }
+
 
 	// удалить карточку товара из корзины
-	deleteCardToBasket(item: IProductItem) {}
+  deleteCardToBasket(item: IProductItem) {
+    const index = this._basketProducts.indexOf(item);
+    if (index >= 0) {
+      this._basketProducts.splice(index, 1);
+    }
+  }
 
-	clearBasketProducts() {}
+
+  clearBasketProducts() {
+    this.basketProducts = []
+  }
 }

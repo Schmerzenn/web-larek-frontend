@@ -177,8 +177,13 @@ type FormErrors = Partial<Record<keyof IOrder, string>>;
   - `phone: string`
   - `address: string`
   - `payment: string`
-  - `items: string[]`
+
+Параметры полного заказа для API.
+
+- **Свойства**
+
   - `total: number`
+  - `items: string`
 
 - **Методы**
 

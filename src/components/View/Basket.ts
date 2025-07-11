@@ -39,14 +39,25 @@ export class Basket implements IBasket {
   }
 
   set items(items: HTMLElement[]) {
+    if (items.length) {
+      this.basketList.replaceChildren(...items);
+      this.button.removeAttribute('disabled');
+    } else {
+      this.button.setAttribute('disabled', 'disabled');
+      this.basketList.replaceChildren(createElement<HTMLParagraphElement>('p', { textContent: 'Корзина пуста' }));
+    }
   }
 
   renderHeaderBasketCounter(value: number) {
+    this.headerBasketCounter.textContent = String(value);
   }
   
   renderSumAllProducts(sumAll: number) {
+    this.basketPrice.textContent = String(sumAll + ' синапсов');
   }
 
   render() {
+    this.title.textContent = 'Корзина';
+    return this.basket;
   }
 }

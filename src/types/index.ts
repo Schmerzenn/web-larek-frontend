@@ -33,6 +33,9 @@ export interface IOrderLot {
   email: string;
   phone: string;
   address: string;
+}
+
+export interface IOrderParams extends IOrderLot {
   total: number;
   items: string[];
 }

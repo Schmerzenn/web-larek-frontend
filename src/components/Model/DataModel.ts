@@ -15,9 +15,17 @@ export class DataModel implements IDataModel {
 		this._productCards = [];
 	}
 
-	set productCards(data: IProductItem[]) {}
+  set productCards(data: IProductItem[]) {
+    this._productCards = data;
+    this.events.emit('productCards:receive');
+  }
 
-	get productCards() {}
+  get productCards() {
+    return this._productCards;
+  }
 
-	setPreview(item: IProductItem) {}
+  setPreview(item: IProductItem) {
+    this.selectedСard = item;
+    this.events.emit('modalCard:open', item)
+  }
 }

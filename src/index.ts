@@ -46,66 +46,138 @@ const order = new Order(orderTemplate, events);
 const contacts = new Contacts(contactsTemplate, events);
 
 // Отображения карточек товара на странице
-events.on('productCards:receive', () => {});
+events.on('productCards:receive', () => {
+  dataModel.productCards.forEach(item => {
+    const card = new Card(cardCatalogTemplate, events, { onClick: () => events.emit('card:select', item) });
+    ensureElement<HTMLElement>('.gallery').append(card.render(item));
+  });
+});
 
 // Получение Объекта данных "IProductItem" карточки по клику
-events.on('card:select', (item: IProductItem) => {});
+events.on('card:select', (item: IProductItem) => { dataModel.setPreview(item) });
 
 // Открытие модального окна карточки товара
-events.on('modalCard:open', (item: IProductItem) => {});
+events.on('modalCard:open', (item: IProductItem) => {
+  const cardPreview = new CardPreview(cardPreviewTemplate, events)
+  modal.content = cardPreview.render(item);
+  modal.render();
+});
 
 // Добавление карточки товара в корзину
-events.on('card:addBasket', () => {});
+events.on('card:addBasket', () => {
+  basketModel.setSelectedСard(dataModel.selectedСard); // добавить карточку товара в корзину
+  basket.renderHeaderBasketCounter(basketModel.getCounter()); // отобразить количество товара на иконке корзины
+  modal.close();
+});
+
 
 // Открытие модального окна корзины
-events.on('basket:open', () => {});
+events.on('basket:open', () => {
+  basket.renderSumAllProducts(basketModel.getSumAllProducts());  // отобразить сумма всех продуктов в корзине
+  let i = 0;
+  basket.items = basketModel.basketProducts.map((item) => {
+    const basketItem = new BasketItem(cardBasketTemplate, events, { onClick: () => events.emit('basket:basketItemRemove', item) });
+    i = i + 1;
+    return basketItem.render(item, i);
+  })
+  modal.content = basket.render();
+  modal.render();
+});
+
 
 // Удаление карточки товара из корзины
-events.on('basket:basketItemRemove', (item: IProductItem) => {});
+events.on('basket:basketItemRemove', (item: IProductItem) => {
+  basketModel.deleteCardToBasket(item);
+  basket.renderHeaderBasketCounter(basketModel.getCounter()); // отобразить количество товара на иконке корзины
+  basket.renderSumAllProducts(basketModel.getSumAllProducts()); // отобразить сумма всех продуктов в корзине
+  let i = 0;
+  basket.items = basketModel.basketProducts.map((item) => {
+    const basketItem = new BasketItem(cardBasketTemplate, events, { onClick: () => events.emit('basket:basketItemRemove', item) });
+    i = i + 1;
+    return basketItem.render(item, i);
+  })
+});
 
 // Открытие "способа оплаты" и "адреса доставки" модального окна
-events.on('order:open', () => {});
+events.on('order:open', () => {
+  modal.content = order.render();
+  modal.render();
+  // formModel.items = basketModel.basketProducts.map(item => item.id); // передаём список id товаров которые покупаем
+});
+
 
 // передаём способ оплаты
-events.on('order:paymentSelection', (button: HTMLButtonElement) => {});
+events.on('order:paymentSelection', (button: HTMLButtonElement) => { formModel.payment = button.name })
 
 // Отслеживаем изменение в поле в вода "адреса доставки"
-events.on(
-	`order:changeAddress`,
-	(data: { field: string; value: string }) => {}
-);
+events.on(`order:changeAddress`, (data: { field: string, value: string }) => {
+  formModel.setOrderAddress(data.field, data.value);
+});
 
 // Валидация данных строки "address" и payment
-events.on('formErrors:address', (errors: Partial<IOrderForm>) => {});
+events.on('formErrors:address', (errors: Partial<IOrderForm>) => {
+  const { address, payment } = errors;
+  order.valid = !address && !payment;
+  order.formErrors.textContent = Object.values({address, payment}).filter(i => !!i).join('; ');
+})
 
 // Открытие модального окна "email" и "телефон"
-events.on('contacts:open', () => {});
+events.on('contacts:open', () => {
+  // formModel.total = basketModel.getSumAllProducts();
+  modal.content = contacts.render();
+  modal.render();
+});
 
 // Отслеживаем изменение в полях вода "email" и "телефон"
-events.on(
-	`contacts:changeInput`,
-	(data: { field: string; value: string }) => {}
-);
+events.on(`contacts:changeInput`, (data: { field: string, value: string }) => {
+  formModel.setOrderData(data.field, data.value);
+});
 
 // Валидация данных строки "email" и "телефон"
-events.on('formErrors:change', (errors: Partial<IOrderForm>) => {});
+events.on('formErrors:change', (errors: Partial<IOrderForm>) => {
+  const { email, phone } = errors;
+  contacts.valid = !email && !phone;
+  contacts.formErrors.textContent = Object.values({phone, email}).filter(i => !!i).join('; ');
+})
 
 // Открытие модального окна "Заказ оформлен"
-events.on('success:open', () => {});
+events.on('success:open', () => {
+  // собираем список id и сумму из корзины
+  const items = basketModel.basketProducts.map(item => item.id);
+  const total = basketModel.getSumAllProducts();
+
+  // строим полный заказ
+  const fullOrder = formModel.buildFullOrder(items, total);
+
+  apiModel.postOrderLot(fullOrder)
+    .then((data) => {
+      console.log(data); // ответ сервера
+      const success = new Success(successTemplate, events);
+      modal.content = success.render(total);
+      basketModel.clearBasketProducts(); // очищаем корзину
+      basket.renderHeaderBasketCounter(basketModel.getCounter()); // обновляем счётчик
+      modal.render();
+    })
+    .catch(error => console.log(error));
+});
+
 
 // Закрытие модального окна "Заказ оформлен"
-events.on('success:close', () => {});
+events.on('success:close', () => modal.close());
 
 // Блокировка прокрутку страницы при открытие модального окна
-events.on('modal:open', () => {});
+events.on('modal:open', () => {
+  modal.locked = true;
+});
 
 // Разблокируем прокрутку страницы при закрытие модального окна
-events.on('modal:close', () => {});
+events.on('modal:close', () => {
+  modal.locked = false;
+});
 
 // Получаем данные с сервера
-apiModel
-	.getListProductCard()
-	.then(function (data: IProductItem[]) {
-		dataModel.productCards = data;
-	})
-	.catch((error) => console.log(error));
+apiModel.getListProductCard()
+  .then(function (data: IProductItem[]) {
+    dataModel.productCards = data;
+  })
+  .catch(error => console.log(error))
